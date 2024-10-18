@@ -7,3 +7,7 @@ final_model.keras
 best_model.keras
 
 data/
+
+
+*.DS_Store
+.DS_Store
