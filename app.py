@@ -54,6 +54,9 @@ def predict():
             # Perform the prediction
             predictions = model.predict(image_array)
 
+            # Convert the prediction probabilities to percentages
+            prediction_percentages = predictions[0] * 100
+
             # Get the class with the highest score
             predicted_class = np.argmax(predictions, axis=-1)[0]
 
@@ -65,8 +68,18 @@ def predict():
             else:
                 predicted_label = Label.OTHER.value
 
+                # Create a response with both the predicted label and probabilities
+            response = {
+                'predicted_class': predicted_label,
+                'probabilities': {
+                    'Healthy': f"{prediction_percentages[1]:.2f}%",
+                    'Rust': f"{prediction_percentages[2]:.2f}%",
+                    'Other': f"{prediction_percentages[0]:.2f}%"
+                }
+            }
+
             # Return the prediction as JSON
-            return jsonify({'predicted_class': predicted_label})
+            return jsonify(response)
 
         else:
             return jsonify({'error': 'Image could not be loaded'}), 400
