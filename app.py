@@ -1,19 +1,21 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import tensorflow as tf
+import torch
 import numpy as np
-from PIL import Image
+import tensorflow as tf
+# ENUM
 from enum import Enum
+
+# Define an Enum for the class labels
+
+
+class PredictionLabel(Enum):
+    MILD = 0
+    SERIOUS = 1
+
 
 # Load your model
 model = tf.keras.models.load_model('best_model.keras')
-
-
-class Label(Enum):
-    HEALTH = "Healthy"
-    RUST = "Rust"
-    OTHER = "Other"
-
 
 app = Flask(__name__)
 CORS(app)
@@ -22,37 +24,43 @@ CORS(app)
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Get the file from the request
-        file = request.files['image']
+        # Get the file from the request (assuming it's a .pt file)
+        file = request.files['file']
         if not file:
             return jsonify({'error': 'No file uploaded'}), 400
 
-        # Read the image using Pillow
+        # Load the .pt file and convert to NumPy array
         try:
-            # Use stream to open the image directly
-            image = Image.open(file.stream)
-        except Exception as e:
-            app.logger.error(f"Error reading JPEG image: {str(e)}")
-            return jsonify({'error': 'Failed to read JPEG image'}), 400
+            pt_tensor = torch.load(file)
+            numpy_data = pt_tensor.numpy()
 
-        # Preprocess the image (resizing, normalizing, etc.)
-        if image is not None:
-            # Resize the image to (256, 256) and convert to numpy array
-            image = image.resize((256, 256), Image.LANCZOS)
-            image_array = np.array(image)
+            # Debug: Print the shape of the tensor
+            # Should be (101, 32, 32)
+            print(f"Loaded tensor shape: {numpy_data.shape}")
 
-            # Ensure the image has three channels (RGB)
-            if image_array.shape[-1] != 3:
-                app.logger.error("Image does not have 3 channels (RGB).")
-                return jsonify({'error': 'Image must be RGB'}), 400
+            # Ensure the shape is as expected
+            if len(numpy_data.shape) == 3 and numpy_data.shape[0] == 101:
+                # Transpose to (height, width, channels) and add batch dimension
+                numpy_data = np.transpose(
+                    numpy_data, (1, 2, 0))  # Shape: (32, 32, 101)
+                # Shape: (1, 32, 32, 101)
+                numpy_data = np.expand_dims(numpy_data, axis=0)
+            else:
+                return jsonify({'error': f"Unexpected tensor shape: {numpy_data.shape}"}), 400
 
-            # Expand dimensions and normalize
-            image_array = np.expand_dims(
-                image_array, axis=0)  # Add batch dimension
-            image_array = image_array / 255.0  # Normalize pixel values
+            # Normalize the data if necessary
+            # Assuming normalization is required
+            numpy_data = numpy_data.astype('float32') / 255.0
+
+            # Debug: Print the shape of the tensor after processing
+            # Should be (1, 32, 32, 101)
+            print(f"Processed tensor shape: {numpy_data.shape}")
 
             # Perform the prediction
-            predictions = model.predict(image_array)
+            predictions = model.predict(numpy_data)
+
+            # Debug: Print raw predictions
+            print(f"Raw predictions: {predictions}")
 
             # Convert the prediction probabilities to percentages
             prediction_percentages = predictions[0] * 100
@@ -60,29 +68,27 @@ def predict():
             # Get the class with the highest score
             predicted_class = np.argmax(predictions, axis=-1)[0]
 
-            # Convert the class index to a label
-            if predicted_class == 1:
-                predicted_label = Label.HEALTH.value
-            elif predicted_class == 2:
-                predicted_label = Label.RUST.value
-            else:
-                predicted_label = Label.OTHER.value
+            # Convert the class index to the corresponding label
+            predicted_class = PredictionLabel(predicted_class).name
 
-                # Create a response with both the predicted label and probabilities
+            # Prepare a response
             response = {
-                'predicted_class': predicted_label,
-                'probabilities': {
-                    'Healthy': f"{prediction_percentages[1]:.2f}%",
-                    'Rust': f"{prediction_percentages[2]:.2f}%",
-                    'Other': f"{prediction_percentages[0]:.2f}%"
+                'predicted_class': predicted_class,
+                'prediction_percentages': {
+                    PredictionLabel.MILD.name: float(prediction_percentages[PredictionLabel.MILD.value]),
+                    PredictionLabel.SERIOUS.name: float(
+                        prediction_percentages[PredictionLabel.SERIOUS.value])
                 }
             }
+
+            print(response)
 
             # Return the prediction as JSON
             return jsonify(response)
 
-        else:
-            return jsonify({'error': 'Image could not be loaded'}), 400
+        except Exception as e:
+            app.logger.error(f"Error processing .pt file: {str(e)}")
+            return jsonify({'error': 'Failed to process .pt file'}), 400
 
     except Exception as e:
         app.logger.error(f"Error processing request: {str(e)}")
