@@ -3,7 +3,6 @@ from flask_cors import CORS
 import torch
 import numpy as np
 import tensorflow as tf
-# ENUM
 from enum import Enum
 
 # Define an Enum for the class labels
@@ -48,19 +47,11 @@ def predict():
             else:
                 return jsonify({'error': f"Unexpected tensor shape: {numpy_data.shape}"}), 400
 
-            # Normalize the data if necessary
-            # Assuming normalization is required
+            # Normalize the data
             numpy_data = numpy_data.astype('float32') / 255.0
-
-            # Debug: Print the shape of the tensor after processing
-            # Should be (1, 32, 32, 101)
-            print(f"Processed tensor shape: {numpy_data.shape}")
 
             # Perform the prediction
             predictions = model.predict(numpy_data)
-
-            # Debug: Print raw predictions
-            print(f"Raw predictions: {predictions}")
 
             # Convert the prediction probabilities to percentages
             prediction_percentages = predictions[0] * 100

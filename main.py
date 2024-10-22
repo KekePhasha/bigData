@@ -14,10 +14,12 @@ TRAIN_DIR = 'data/ICPR01/kaggle/traning/'
 
 images, labels = load_numpy_files(TRAIN_DIR)
 
+# Get data labels
 unique_labels = np.unique(labels)
 
-
 # Normalize the Data
+
+
 def normalize_images(images):
     """Normalize pixel values to [0, 1]."""
     return images.astype('float32') / 255.0
@@ -25,6 +27,7 @@ def normalize_images(images):
 
 images_normalized = normalize_images(images)
 
+# Transpose the images to match the input shape of the model
 images_normalized = np.transpose(images_normalized, (0, 2, 3, 1))
 
 
