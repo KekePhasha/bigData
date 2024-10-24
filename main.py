@@ -7,7 +7,6 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 from plotting import plot_training_history
 import torch
-import os
 
 
 TRAIN_DIR = 'data/ICPR01/kaggle/traning/'

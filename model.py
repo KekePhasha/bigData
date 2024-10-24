@@ -1,7 +1,6 @@
 from tensorflow.keras import layers, models, regularizers
 
 
-# CNN Model
 def create_cnn_model(input_shape, num_classes):
     input_layer = layers.Input(shape=input_shape)
 

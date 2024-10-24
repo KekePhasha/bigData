@@ -33,12 +33,3 @@ def convert_pt_to_tf(input_directory, output_directory):
                 np.save(output_file_path, tf_tensor.numpy())
                 print(f"Converted {file} to "
                       "output_file_name} and saved at {output_file_path}")
-
-
-# Example usage
-# Update with your dataset directory
-# input_directory = 'data/ICPR01/kaggle/2'
-# # Output directory in Kaggle
-# output_directory = 'data/ICPR01/kaggle/traning/2'
-
-# convert_pt_to_tf(input_directory, output_directory)
